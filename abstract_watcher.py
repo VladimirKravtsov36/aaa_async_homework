@@ -1,5 +1,6 @@
 import abc
 from typing import Coroutine, Any
+import asyncio
 
 """
 Описание задачи:
@@ -8,14 +9,14 @@ from typing import Coroutine, Any
         - возможность планирования новой задачи
         - отслеживание состояния завершенных задач (сохранение результатов их выполнения)
         - отмену незавершенных задач перед остановкой работы планировщика
-        
+
     Ниже представлен интерфейс, которому должна соответствовать ваша реализация.
-    
+
     Обратите внимание, что перед завершением работы планировщика, все запущенные им корутины должны быть
     корректным образом завершены.
-    
+
     В папке tests вы найдете тесты, с помощью которых мы будем проверять работоспособность вашей реализации
-    
+
 """
 
 
@@ -28,12 +29,12 @@ class AbstractRegistrator(abc.ABC):
     @abc.abstractmethod
     def register_value(self, value: Any) -> None:
         # Store values returned from done task
-        ...
+        pass
 
     @abc.abstractmethod
     def register_error(self, error: BaseException) -> None:
         # Store exceptions returned from done task
-        ...
+        pass
 
 
 class AbstractWatcher(abc.ABC):
@@ -62,19 +63,30 @@ class AbstractWatcher(abc.ABC):
 
 
 class StudentWatcher(AbstractWatcher):
+
     def __init__(self, registrator: AbstractRegistrator):
         super().__init__(registrator)
-        # Your code goes here
-        ...
+        self.tasks = []
+
 
     async def start(self) -> None:
-        # Your code goes here
-        ...
+        pass
+
+    async def register_one_task(self, coro: Coroutine) -> None:
+
+        try:
+            res = await coro
+            self.registrator.register_value(res)
+        except Exception as e:
+            self.registrator.register_error(e)
 
     async def stop(self) -> None:
-        # Your code goes here
-        ...
+
+        tasks_to_run = [self.register_one_task(task) for task in self.tasks]
+        await asyncio.gather(*tasks_to_run)
 
     def start_and_watch(self, coro: Coroutine) -> None:
-        # Your code goes here
-        ...
+
+        self.tasks.append(coro)
+
+
